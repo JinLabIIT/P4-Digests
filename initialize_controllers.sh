@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Paths to the controller scripts
-S1_CONTROLLER="./controllers/s1_controller.py"
-S2_CONTROLLER="./controllers/s2_controller.py"
-S3_CONTROLLER="./controllers/s3_controller.py"
+S1_CONTROLLER="./s1_controller.py"
+S2_CONTROLLER="./s2_controller.py"
+S3_CONTROLLER="./s3_controller.py"
 
 # Function to start a controller in the background
 start_controller() {

@@ -64,7 +64,6 @@ def modifyRules(p4info_helper, switch, rules):
                 action_name=action_name,
                 action_params=action_params
             )
-
             # Use ModifyTableEntry to update the table entry
             switch.ModifyTableEntry(table_entry)
             print(f"Modified rule on {switch.name}: {match_fields} -> {action_name} {action_params}")

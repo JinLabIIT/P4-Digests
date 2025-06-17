@@ -40,31 +40,31 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
 )
 
-def phase_I():
-    # Set up the initial network
-    network = net()
+# def phase_I():
+#     # Set up the initial network
+#     network = net()
 
-    net.load_network(network, filename='../topology.json')
+#     net.load_network(network, filename='../topology.json')
     
-    # Visualize the network before PDC removal
-    print("Network before PDC removal:")
-    net.visualize_network(network)  # Visualize before removal
+#     # Visualize the network before PDC removal
+#     print("Network before PDC removal:")
+#     net.visualize_network(network)  # Visualize before removal
     
-    # Remove a random PDC
-    ip = net.remove_random_pdc(network)
-    find_ciritical_pmus = network.find_critical_pmus()  # Identify critical PMUs
-    print(f"Critical PMUs after PDC removal: {find_ciritical_pmus}")
+#     # Remove a random PDC
+#     ip = net.remove_random_pdc(network)
+#     find_ciritical_pmus = network.find_critical_pmus()  # Identify critical PMUs
+#     print(f"Critical PMUs after PDC removal: {find_ciritical_pmus}")
     
-    # Visualize the network after PDC removal
-    print("Network after PDC removal:")
-    net.visualize_network(network)  # Visualize after removal
+#     # Visualize the network after PDC removal
+#     print("Network after PDC removal:")
+#     net.visualize_network(network)  # Visualize after removal
     
-    # Call the decentralized routing method to fix connections
-    net.connect(network, ip)
+#     # Call the decentralized routing method to fix connections
+#     net.connect(network, ip)
     
-    # Visualize the fixed network
-    print("Network after fixing decentralized routing:")
-    net.visualize_network(network)  # Visualize after re-routing
+#     # Visualize the fixed network
+#     print("Network after fixing decentralized routing:")
+#     net.visualize_network(network)  # Visualize after re-routing
 
 def read_stream(p4info_helper, stream_channel):
     def request_iterator():
@@ -125,26 +125,26 @@ def make_packet(src_ip, dst_ip, src_mac, dst_mac, payload):
     packet = ether_layer / ip_layer / payload
     return packet
 
-def process__digest(digest,pdcs):
-    source_ip = digest.digest_entry[0].entity
-    src_mac = digest.digest_entry[0].src_mac
-    payload = digest.digest_entry[0].payload
+# def process__digest(digest,pdcs):
+#     source_ip = digest.digest_entry[0].entity
+#     src_mac = digest.digest_entry[0].src_mac
+#     payload = digest.digest_entry[0].payload
 
-    if(payload == b"Available PDC Request" and source_ip == '10.0.0.2'):
-        packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-        output_port = "s1-eth2"
-        sendp(packet, iface=output_port, verbose=False)
-        print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
-    elif(payload == b"Available PDC Request" and source_ip == '10.0.0.3'):
-        packet = make_packet('10.0.0.', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-        output_port = "s1-eth3"
-        sendp(packet, iface=output_port, verbose=False)
-        print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
-    elif(source_ip == '10.0.0.1'):
-        packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-        output_port = "s1-eth2"
-        sendp(packet, iface=output_port, verbose=False)
-        print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
+#     if(payload == b"Available PDC Request" and source_ip == '10.0.0.2'):
+#         packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
+#         output_port = "s1-eth2"
+#         sendp(packet, iface=output_port, verbose=False)
+#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
+#     elif(payload == b"Available PDC Request" and source_ip == '10.0.0.3'):
+#         packet = make_packet('10.0.0.', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
+#         output_port = "s1-eth3"
+#         sendp(packet, iface=output_port, verbose=False)
+#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
+#     elif(source_ip == '10.0.0.1'):
+#         packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
+#         output_port = "s1-eth2"
+#         sendp(packet, iface=output_port, verbose=False)
+#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
 
 
 def main(p4info_file_path, bmv2_file_path):

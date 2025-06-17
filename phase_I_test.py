@@ -1,4 +1,6 @@
 from switch_functions import Network as net
+import rules
+import runtime_functions as rt
 
 def main():
     # Set up the initial network
@@ -25,6 +27,10 @@ def main():
     # Visualize the fixed network
     print("Network after fixing decentralized routing:")
     net.visualize_network(network)  # Visualize after re-routing
+
+    #generate rules
+
+    rt.writeRules(p4info_helper, s2, rules.s2_rules)
 
 if __name__ == "__main__":
     main()

@@ -47,6 +47,7 @@ header arp_t {
 }
 
 header net_header_t {
+    bit<8> disconnected_pmus;
     bit<32> ip_value;
     bit<8> rtype; //return or request
 }

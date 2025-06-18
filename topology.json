@@ -20,72 +20,72 @@
             "ip": "10.0.1.2/24",
             "mac": "08:00:00:00:01:02",
             "commands": [
-                "route add default gw 10.0.2.20 dev eth0",
-                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
+                "route add default gw 10.0.1.10 dev eth0",
+                "arp -i eth0 -s 10.0.1.10 08:00:00:00:01:00"
             ]
         },
         "pdc3": {
             "ip": "10.0.1.3/24",
             "mac": "08:00:00:00:01:03",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.1.10 dev eth0",
+                "arp -i eth0 -s 10.0.1.10 08:00:00:00:01:00"
             ]
         },
         "pmu1": {
             "ip": "10.0.2.1/24",
             "mac": "08:00:00:00:02:01",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu2": {
             "ip": "10.0.2.2/24",
             "mac": "08:00:00:00:02:02",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu3": {
             "ip": "10.0.2.3/24",
             "mac": "08:00:00:00:02:03",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu4": {
             "ip": "10.0.2.4/24",
             "mac": "08:00:00:00:02:04",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu5": {
             "ip": "10.0.2.5/24",
             "mac": "08:00:00:00:02:05",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu6": {
             "ip": "10.0.2.6/24",
             "mac": "08:00:00:00:02:06",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu7": {
             "ip": "10.0.2.7/24",
             "mac": "08:00:00:00:02:07",
             "commands": [
-                "route add default gw 10.0.2.10 dev eth0",
-                "arp -i eth0 -s 10.0.2.10 08:00:00:00:01:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu8": {
@@ -140,48 +140,48 @@
             "ip": "10.0.2.14/24",
             "mac": "08:00:00:00:02:0E",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+               "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu15": {
             "ip": "10.0.2.15/24",
             "mac": "08:00:00:00:02:0F",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu16": {
             "ip": "10.0.2.16/24",
             "mac": "08:00:00:00:02:10",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu17": {
             "ip": "10.0.2.17/24",
             "mac": "08:00:00:00:02:11",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu18": {
             "ip": "10.0.2.18/24",
             "mac": "08:00:00:00:02:12",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         },
         "pmu19": {
             "ip": "10.0.2.19/24",
             "mac": "08:00:00:00:02:13",
             "commands": [
-                "route add default gw 10.0.3.30 dev eth0",
-                "arp -i eth0 -s 10.0.3.30 08:00:00:00:03:00"
+                "route add default gw 10.0.2.20 dev eth0",
+                "arp -i eth0 -s 10.0.2.20 08:00:00:00:02:00"
             ]
         }
     },

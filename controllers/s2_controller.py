@@ -35,7 +35,7 @@ def printGrpcError(e):
     print("[%s:%d]" % (traceback.tb_frame.f_code.co_filename, traceback.tb_lineno))
 
 logging.basicConfig(
-    filename='../logs/s2_controller.log',  # Log file name
+    filename='/home/p4/SelfHealingPMU/logs/s2_controller.log',  #This is my static path. You should change it if you're not me.
     level=logging.INFO,         # Log level (INFO, DEBUG, etc.)
     format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
 )
@@ -201,10 +201,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='P4Runtime Controller')
     parser.add_argument('--p4info', help='p4info proto in text format from p4c',
                         type=str, action="store", required=False,
-                        default='../build/basic.p4.p4info.txtpb')
+                        default='/home/p4/SelfHealingPMU/build/basic.p4.p4info.txtpb')
     parser.add_argument('--bmv2-json', help='BMv2 JSON file from p4c',
                         type=str, action="store", required=False,
-                        default='../build/basic.json')
+                        default='/home/p4/SelfHealingPMU/build/basic.json')
     args = parser.parse_args()
 
     if not os.path.exists(args.p4info):

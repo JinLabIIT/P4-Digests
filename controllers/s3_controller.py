@@ -155,11 +155,11 @@ def main(p4info_file_path, bmv2_file_path):
         # Create switch connection object
         s3 = p4runtime_lib.bmv2.Bmv2SwitchConnection(
             name='s3',
-            address='127.0.0.1:50052',
-            device_id=1,
-            proto_dump_file='../logs/s3-p4runtime-requests.txt')
+            address='127.0.0.1:50053',
+            device_id=2,
+            proto_dump_file='/home/p4/SelfHealingPMU/logs/s3-p4runtime-requests.txt') #local location, one more time
 
-        s3.MasterArbitrationUpdate()
+        s3.MasterArbitrationUpdate(election_id=(0, 3))
 
         channel = s3.channel
 

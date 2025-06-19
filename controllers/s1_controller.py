@@ -155,12 +155,12 @@ def main(p4info_file_path, bmv2_file_path):
         # Create switch connection object
         s1 = p4runtime_lib.bmv2.Bmv2SwitchConnection(
             name='s1',
-            address='127.0.0.1:50052',
-            device_id=1,
-            proto_dump_file='../logs/s1-p4runtime-requests.txt')
+            address='127.0.0.1:50051',
+            device_id=0,
+            proto_dump_file='/home/p4/SelfHealingPMU/logs/s1-p4runtime-requests.txt')
 
         # Establish master arbitration
-        s1.MasterArbitrationUpdate()
+        s1.MasterArbitrationUpdate(election_id=(0, 1))
 
         channel = s1.channel
 

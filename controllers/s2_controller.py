@@ -157,10 +157,10 @@ def main(p4info_file_path, bmv2_file_path):
             name='s2',
             address='127.0.0.1:50052',
             device_id=1,
-            proto_dump_file='../logs/s2-p4runtime-requests.txt')
+            proto_dump_file='/home/p4/SelfHealingPMU/logs/s2-p4runtime-requests.txt')
 
         # Establish master arbitration
-        s2.MasterArbitrationUpdate()
+        s2.MasterArbitrationUpdate(election_id=(0, 2))
 
         channel = s2.channel
 

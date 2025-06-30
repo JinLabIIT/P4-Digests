@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import socket
 import time
 import argparse
@@ -57,8 +58,8 @@ def pmu_send(pdc_ip, pdc_port, bus_ids, interval):
     :param interval: The time to wait between sending each batch of measurements.
     """
     pmu_socket = None
-    print(f"--- PMU Started for Buses: {', '.join(bus_ids)} ---")
-    print(f"Attempting to connect to PDC at {pdc_ip}:{pdc_port}...")
+    #print(f"--- PMU Started for Buses: {', '.join(bus_ids)} ---")
+    #print(f"Attempting to connect to PDC at {pdc_ip}:{pdc_port}...")
 
     try:
         pmu_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -72,17 +73,17 @@ def pmu_send(pdc_ip, pdc_port, bus_ids, interval):
                     print(f"Warning: Bus ID '{bus_id}' not found in database. Skipping.", file=sys.stderr)
                     continue
 
-                bus_data = bus_data[bus_id]
-                voltage = bus_data["voltage"]
-                angle = bus_data["phaseAngle"]
+                data = bus_data[bus_id]
+                voltage = data["voltage"]
+                angle = data["phaseAngle"]
                 timestamp = time.time()
 
                 message = f"busID: {bus_id} voltage: {voltage} phaseAngle: {angle} timestamp: {timestamp}\n"
                 
                 pmu_socket.sendall(message.encode('utf-8'))
-                print(f"Sent data for {bus_id}")
+                #print(f"Sent data for {bus_id}")
             
-            #print(f"--- Batch complete. Waiting for {interval} second(s)... ---") #use for debugging
+            #print(f"--- Batch complete. Waiting for {interval} second(s)... ---")
             time.sleep(interval)
 
     except ConnectionRefusedError:

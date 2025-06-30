@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 import socket
 import argparse
 import sys
 import json
 import csv
 import os
-import subprocess
 
 def load_config(config_file):
     try:
@@ -43,6 +43,8 @@ def pdc_recv(listen_ip, listen_port, csv_file):
         server_socket.close()
 
 def handle_connection(client_socket, csv_file):
+    peer_address = client_socket.getpeername()
+
     with client_socket, open(csv_file, 'a', newline='') as f:
         writer = csv.writer(f)
         buffer = ""
@@ -57,7 +59,8 @@ def handle_connection(client_socket, csv_file):
                 if parsed:
                     writer.writerow(parsed)
                     print(f"Stored data: {parsed}")
-    print(f"Connection from {client_socket.getpeername()} closed.")
+    
+    print(f"Connection from {peer_address} closed.")
 
 
 def parse_pmu_message(message):

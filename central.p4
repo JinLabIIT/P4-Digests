@@ -174,7 +174,7 @@ control MyIngress(inout headers hdr,
     }
 
     action mark_as_switch_traffic() {
-        if (hdr.net_hdr.isValid()  && standard_metadata.ingress_port != CPU_PORT) {
+        if (hdr.net_hdr.isValid()) {
             digest<net_report_t>(1, {hdr.net_hdr.disconnected_pmus, hdr.net_hdr.ip_value, hdr.net_hdr.rtype});
         } 
     }

@@ -58,14 +58,10 @@ def pmu_send(pdc_ip, pdc_port, bus_ids, interval):
     :param interval: The time to wait between sending each batch of measurements.
     """
     pmu_socket = None
-    #print(f"--- PMU Started for Buses: {', '.join(bus_ids)} ---")
-    #print(f"Attempting to connect to PDC at {pdc_ip}:{pdc_port}...")
 
     try:
-        pmu_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        pmu_socket.connect((pdc_ip, pdc_port))
-        print("Connection to PDC established successfully.")
+        pmu_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        print(f"UDP PMU client ready to send to PDC at {pdc_ip}:{pdc_port}")
 
         while True:
             for bus_id in bus_ids:
@@ -80,21 +76,19 @@ def pmu_send(pdc_ip, pdc_port, bus_ids, interval):
 
                 message = f"busID: {bus_id} voltage: {voltage} phaseAngle: {angle} timestamp: {timestamp}\n"
                 
-                pmu_socket.sendall(message.encode('utf-8'))
+                pmu_socket.sendto(message.encode('utf-8'), (pdc_ip, pdc_port))
                 #print(f"Sent data for {bus_id}")
             
             #print(f"--- Batch complete. Waiting for {interval} second(s)... ---")
             time.sleep(interval)
 
-    except ConnectionRefusedError:
-        print(f"Error: Connection refused. Is the PDC server running on {pdc_ip}:{pdc_port}?", file=sys.stderr)
     except KeyboardInterrupt:
         print("\n--- PMU Stopped by user ---")
     except Exception as e:
         print(f"An unexpected error occurred: {e}", file=sys.stderr)
     finally:
         if pmu_socket:
-            print("Closing connection to PDC.")
+            print("Closing UDP socket.")
             pmu_socket.close()
 
 if __name__ == "__main__":

@@ -1,5 +1,35 @@
 s1_rules = [
     {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.1", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.2", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.3", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.2", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:02", "port": 1}
+    },
+    {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.3", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:03", "port": 2}
+    },
+    {
         "table": "MyIngress.ipv4_lpm",
         "match": {"hdr.ipv4.dstAddr": ("10.0.1.1", 32)},
         "action_name": "MyIngress.ipv4_forward",
@@ -140,6 +170,36 @@ s1_rules = [
 ]
 s2_rules = [
     {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.1", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.2", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.3", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+        {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.1", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:01", "port": 1}
+    },
+    {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.3", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:03", "port": 2}
+    },
+    {
         "table": "MyIngress.ipv4_lpm",
         "match": {"hdr.ipv4.dstAddr": ("10.0.1.1", 32)},
         "action_name": "MyIngress.ipv4_forward",
@@ -279,6 +339,36 @@ s2_rules = [
     }
 ]
 s3_rules = [
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.1", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.2", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.check_switch_source_ip",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.3", 32)},
+        "action_name": "MyIngress.mark_as_switch_traffic",
+        "action_params": {}
+    },
+    {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.1", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:01", "port": 1}
+    },
+    {
+        "table": "MyIngress.ipv4_lpm",
+        "match": {"hdr.ipv4.dstAddr": ("10.0.0.2", 32)},
+        "action_name": "MyIngress.ipv4_forward",
+        "action_params": {"dstAddr": "00:00:00:00:01:02", "port": 2}
+    },
     {
         "table": "MyIngress.ipv4_lpm",
         "match": {"hdr.ipv4.dstAddr": ("10.0.1.1", 32)},

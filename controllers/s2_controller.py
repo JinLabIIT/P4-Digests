@@ -5,6 +5,11 @@ import os
 import sys
 from time import sleep
 import logging
+from queue import Queue
+from threading import Thread
+from scapy.all import Ether, IP, Raw, sendp, Packet, BitField
+import ipaddress
+import datetime, time
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root) 
 import rules
@@ -14,6 +19,12 @@ from switch_functions import Network as net
 
 import grpc
 
+import signal
+
+# Turn SIGINT and SIGTERM into KeyboardInterrupt
+signal.signal(signal.SIGINT, lambda s, f: (_ for _ in ()).throw(KeyboardInterrupt))
+signal.signal(signal.SIGTERM, lambda s, f: (_ for _ in ()).throw(KeyboardInterrupt))
+
 # Import P4Runtime lib from parent utils dir
 # Probably there's a better way of doing this.
 # this is my local path to the utils folder
@@ -21,10 +32,12 @@ import grpc
 sys.path.append('/home/p4/tutorials/utils')
 import p4runtime_lib.bmv2
 import p4runtime_lib.helper
+import p4runtime_lib.switch as switch
 from p4runtime_lib.switch import ShutdownAllSwitchConnections
 from p4.v1 import p4runtime_pb2
 from scapy.all import Ether, IP, sendp
 import socket
+from p4.v1 import p4runtime_pb2
 
 #debugging
 def printGrpcError(e):
@@ -40,111 +53,194 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'  # Log format
 )
 
-# def phase_I():
-#     # Set up the initial network
-#     network = net()
+class NetHdr(Packet):
+    name = "net_hdr"
+    fields_desc = [
+        BitField("disconnected_pmus", 0, 7),
+        BitField("ip_value", 0, 32),
+        BitField("rtype", 0, 1)
+    ]
 
-#     net.load_network(network, filename='../topology.json')
+
+def send_packet_out(switch_conn, p4info_helper, pkt_bytes, egress_port):
+    packet_out = p4runtime_pb2.PacketOut()
+    packet_out.payload = pkt_bytes
+
+    md = packet_out.metadata.add()
+    md.metadata_id = p4info_helper.get_packet_metadata_id("egress_port")
+    md.value = (egress_port).to_bytes(1, byteorder="big")  # 8 bits -> 1 byte
+
+    request = p4runtime_pb2.StreamMessageRequest()
+    request.packet.CopyFrom(packet_out)
+    switch_conn.requests_stream.put(request)
+
+PDCs_up = [1,1,1,1]
+processed_ips = set()
+
+def handle_digests(p4info_helper, switch_conn):
+
+    print(f"Listening for digests on {switch_conn.name}...")
+    while True: 
+        try:
+            digest = switch_conn.dispatcher.digest_queue.get()
+            #print("\n----- Digest Received on S2-----")
+            #print(digest)
+
+            ts_ns = digest.timestamp  # nanoseconds since switch start
+            ts_sec = ts_ns / 1e9
+            real_time = datetime.datetime.fromtimestamp(ts_sec)
+
+            print("s2:", real_time)
+            
+            process__digest(switch_conn, digest, p4info_helper) 
+
+            # Acknowledge the digest
+            ack = p4runtime_pb2.StreamMessageRequest()
+            ack.digest_ack.digest_id = digest.digest_id
+            ack.digest_ack.list_id = digest.list_id
+            switch_conn.requests_stream.put(ack)
+            #print("--- Sent Digest ACK ---\n")
+
+        except grpc.RpcError:
+            print(f"gRPC Error. Disconnected from {switch_conn.name}.")
+            return
+        except Exception as e:
+            print(f"An error occurred in handle_digests for {switch_conn.name}: {e}")
+            return
+
+
+def process__digest(s2, digest_t, p4info_helper): #digest_t is incoming digest, digest is after removing it from P4StructLike object
+    digest = digest_t.data[0] # P4Data object
+    members = digest.struct.members
+    disconnected_pmus = int.from_bytes(members[0].bitstring, 'big')
+    ip_value = int.from_bytes(members[1].bitstring, 'big')
+    rtype = int.from_bytes(members[2].bitstring, 'big')
+
+    orig_ip = ip_value  # Keep original IP for deduplication
+
+    if orig_ip in processed_ips:
+        return
+
+    if(ip_value == 0x0A000102):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000102  # 10.0.1.2 as int
+        rtype = 0
+        PDCs_up[1] = 0
+
+        # Build packet
+        pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:02") / \
+            IP(src="10.0.0.2", dst="10.0.0.1", proto=253) / \
+            NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
     
-#     # Visualize the network before PDC removal
-#     print("Network before PDC removal:")
-#     net.visualize_network(network)  # Visualize before removal
+
+        # Send out on the correct interface (replace 'eth0' with your interface)
+        sendp(pkt, iface="s2-eth1", verbose=True)
+
+        pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:02") / \
+            IP(src="10.0.0.2", dst="10.0.0.3", proto=253) / \
+            NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+
+        # Send out on the correct interface (replace 'eth0' with your interface)
+        sendp(pkt, iface="s2-eth2", verbose=True)
+
+
     
-#     # Remove a random PDC
-#     ip = net.remove_random_pdc(network)
-#     find_ciritical_pmus = network.find_critical_pmus()  # Identify critical PMUs
-#     print(f"Critical PMUs after PDC removal: {find_ciritical_pmus}")
+    if(ip_value == 0x0A000101 and rtype == 1):
+        try:
+            table_entry = p4info_helper.buildTableEntry(
+                table_name="MyIngress.ipv4_lpm",
+                match_fields={"hdr.ipv4.dstAddr": ("10.0.1.2", 32)},
+                action_name="MyIngress.ipv4_nat_forward",
+                action_params={
+                    "dstAddr": "08:00:00:00:01:01",
+                    "port": 4,
+                    "new_dst_ip": "10.0.1.1"
+                }
+            )
+            s2.ModifyTableEntry(table_entry)
+
+        except grpc.RpcError as e:
+            printGrpcError(e)
+
+            for item in e.trailing_metadata():
+                if item[0] == "p4-runtime-error-bin":
+                    error = p4runtime_pb2.Error()
+                    error.ParseFromString(item[1])
+                    print("\n--- P4Runtime Error Report ---")
+                    print(error)
+                    break
+
+        print("Installed Rule from PDC2 to PDC1")
+
+    if(ip_value == 0x0A000103 and rtype == 1):
+        try:
+            table_entry = p4info_helper.buildTableEntry(
+                table_name="MyIngress.ipv4_lpm",
+                match_fields={"hdr.ipv4.dstAddr": ("10.0.1.2", 32)},
+                action_name="MyIngress.ipv4_nat_forward",
+                action_params={
+                    "dstAddr": "08:00:00:00:01:03",
+                    "port": 4,
+                    "new_dst_ip": "10.0.1.3"
+                }
+            )
+            s2.ModifyTableEntry(table_entry)
+
+        except grpc.RpcError as e:
+            printGrpcError(e)
+
+            for item in e.trailing_metadata():
+                if item[0] == "p4-runtime-error-bin":
+                    error = p4runtime_pb2.Error()
+                    error.ParseFromString(item[1])
+                    print("\n--- P4Runtime Error Report ---")
+                    print(error)
+                    break
+
+        print("Installed Rule from PDC2 to PDC3")
+
+    if(ip_value == 0x0A000104 and rtype == 1):
+        try:
+            table_entry = p4info_helper.buildTableEntry(
+                table_name="MyIngress.ipv4_lpm",
+                match_fields={"hdr.ipv4.dstAddr": ("10.0.1.2", 32)},
+                action_name="MyIngress.ipv4_nat_forward",
+                action_params={
+                    "dstAddr": "08:00:00:00:01:04",
+                    "port": 4,
+                    "new_dst_ip": "10.0.1.4"
+                }
+            )
+            s2.ModifyTableEntry(table_entry)
+
+        except grpc.RpcError as e:
+            printGrpcError(e)
+
+            for item in e.trailing_metadata():
+                if item[0] == "p4-runtime-error-bin":
+                    error = p4runtime_pb2.Error()
+                    error.ParseFromString(item[1])
+                    print("\n--- P4Runtime Error Report ---")
+                    print(error)
+                    break
+
+        print("Installed Rule from PDC2 to PDC1B")
     
-#     # Visualize the network after PDC removal
-#     print("Network after PDC removal:")
-#     net.visualize_network(network)  # Visualize after removal
-    
-#     # Call the decentralized routing method to fix connections
-#     net.connect(network, ip)
-    
-#     # Visualize the fixed network
-#     print("Network after fixing decentralized routing:")
-#     net.visualize_network(network)  # Visualize after re-routing
+    if(ip_value == 0x0A000103):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000103  
+        rtype = 1
+        PDCs_up[2] = 0
 
-def read_stream(p4info_helper, stream_channel):
-    def request_iterator():
-        while True:
-            yield p4runtime_pb2.StreamMessageRequest() # Explicitly yield an empty request
+        if(PDCs_up[1] == 1):
+            ip_value = 0x0A000102
+            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
+                IP(src="10.0.0.2", dst="10.0.0.3", proto=253) / \
+                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+        
+            sendp(pkt, iface="s1-eth2", verbose=True)
 
-    try:
-        response_iterator = stream_channel(request_iterator())
-        while True:
-            try:
-                response = next(response_iterator)
-                print("Received response from stream channel.")
-                handle_stream_message(p4info_helper, response)
-            except grpc.RpcError as e:
-                print("gRPC Error in response iteration:")
-                printGrpcError(e)
-                break
-            except StopIteration:
-                print("Stream closed by the server (response iterator).")
-                break
-            except Exception as e:
-                print(f"An unexpected error occurred during response iteration: {e}")
-                break
-    except grpc.RpcError as e:
-        print("gRPC Error during stream initiation:")
-        printGrpcError(e)
-    except Exception as e:
-        print(f"An unexpected error occurred during stream initiation: {e}")
-
-def handle_stream_message(p4info_helper, stream_msg):
-    for update in stream_msg.updates:
-        if update.HasField('digest'):
-            digest = update.digest
-            digest_name = p4info_helper.get_digest_name(digest.digest_id)
-            if digest_name == "SwitchTrafficDigest":
-                print("Received SwitchTrafficDigest from switch:", digest.device_id)
-                digest_data = p4runtime_pb2.DigestData()
-                for data in digest.data:
-                    digest_data.ParseFromString(data)
-                    dst_eth = digest_data.struct.members[0].bitstring.hex()
-                    src_ip_int = int.from_bytes(digest_data.struct.members[1].bitstring, byteorder='big')
-                    src_ip = socket.inet_ntoa(src_ip_int.to_bytes(4, 'big'))
-                    dst_ip_int = int.from_bytes(digest_data.struct.members[2].bitstring, byteorder='big')
-                    dst_ip = socket.inet_ntoa(dst_ip_int.to_bytes(4, 'big'))
-                    payload_bytes = digest_data.struct.members[3].byte_string
-                    payload_hex = payload_bytes.hex()
-                    payload_decoded = payload_bytes.decode('utf-8', errors='ignore') # Try to decode as UTF-8
-
-                    print(f"  Destination MAC: {dst_eth}")
-                    print(f"  Source IP: {src_ip}")
-                    print(f"  Destination IP: {dst_ip}")
-                    print(f"  Payload (Hex): {payload_hex}")
-                    print(f"  Payload (Decoded): {payload_decoded}")
-
-def make_packet(src_ip, dst_ip, src_mac, dst_mac, payload):
-    ether_layer = Ether(src=src_mac, dst=dst_mac)
-    ip_layer = IP(version=4, src=src_ip, dst=dst_ip, proto=253)
-    packet = ether_layer / ip_layer / payload
-    return packet
-
-# def process__digest(digest,pdcs):
-#     source_ip = digest.digest_entry[0].entity
-#     src_mac = digest.digest_entry[0].src_mac
-#     payload = digest.digest_entry[0].payload
-
-#     if(payload == b"Available PDC Request" and source_ip == '10.0.0.2'):
-#         packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-#         output_port = "s1-eth2"
-#         sendp(packet, iface=output_port, verbose=False)
-#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
-#     elif(payload == b"Available PDC Request" and source_ip == '10.0.0.3'):
-#         packet = make_packet('10.0.0.', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-#         output_port = "s1-eth3"
-#         sendp(packet, iface=output_port, verbose=False)
-#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
-#     elif(source_ip == '10.0.0.1'):
-#         packet = make_packet('10.0.0.1', source_ip, '00:00:00:00:01:11', src_mac, pdcs[0].encode)
-#         output_port = "s1-eth2"
-#         sendp(packet, iface=output_port, verbose=False)
-#         print(f"Sent packet out of interface '{output_port}' on s1 using Scapy.")
+    processed_ips.add(orig_ip)
 
 
 def main(p4info_file_path, bmv2_file_path):
@@ -162,14 +258,6 @@ def main(p4info_file_path, bmv2_file_path):
         # Establish master arbitration
         s2.MasterArbitrationUpdate(election_id=(0, 2))
 
-        channel = s2.channel
-
-        stream_channel = channel.stream_stream(
-            '/p4.v1.P4Runtime/StreamChannel',
-            request_serializer=p4runtime_pb2.StreamMessageRequest.SerializeToString,
-            response_deserializer=p4runtime_pb2.StreamMessageResponse.FromString,
-        )
-        s2.StreamChannel = stream_channel
 
 
         # Install the P4 program on all switches
@@ -182,12 +270,36 @@ def main(p4info_file_path, bmv2_file_path):
 
         print("Installed rules on s2.")
 
-        read_stream(p4info_helper, stream_channel) 
+        # print("metadata id")
+        # print(p4info_helper.get_packet_metadata_id("egress_port"))
 
-        # This is what will end up being triggered by the digest stuff
+        request = p4runtime_pb2.WriteRequest()
+        request.device_id = s2.device_id
+        request.election_id.high = 0
+        request.election_id.low = 2
+        update = request.updates.add()
+        update.type = p4runtime_pb2.Update.INSERT
+        digest_entry = update.entity.digest_entry
+        digest_entry.digest_id = p4info_helper.get_digests_id("net_report_t")
+        digest_entry.config.max_timeout_ns = 0
+        digest_entry.config.max_list_size = 1
+
+        print("Registering for digest 'net_report_t'...")
+        s2.client_stub.Write(request)
+        print("Successfully registered for digest.")
+
+        digest_thread = Thread(target=handle_digests, args=(p4info_helper, s2))
+        digest_thread.daemon = True # Allows main program to exit even if thread is running
+        digest_thread.start()
+
+        # print(f"SwitchConnection info for {s1.name}:")
+        # print(f"  gRPC address: {s1.address}")
+        # print(f"  device_id: {s1.device_id}")
+        # print(f"  channel target: {s1.channel}")
+
         while True:
             sleep(1)
-            print("main loop")
+
 
     except KeyboardInterrupt:
         print(" Shutting down.")
@@ -196,7 +308,7 @@ def main(p4info_file_path, bmv2_file_path):
 
     ShutdownAllSwitchConnections()
 
-
+#I'm using my static paths again here, so you'll need to update them.
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='P4Runtime Controller')
     parser.add_argument('--p4info', help='p4info proto in text format from p4c',

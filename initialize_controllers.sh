@@ -9,7 +9,7 @@ S3_CONTROLLER="controllers/./s3_controller.py"
 start_controller() {
     local controller=$1
     echo "Starting $controller..."
-    python "$controller" &
+    python3 "$controller" &
     echo "$controller started with PID $!"
 }
 

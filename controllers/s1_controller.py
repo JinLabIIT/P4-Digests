@@ -10,6 +10,7 @@ from threading import Thread
 from scapy.all import Ether, IP, Raw, sendp, Packet, BitField
 import ipaddress
 import datetime, time
+from google.protobuf.json_format import MessageToDict
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root) 
 import rules
@@ -29,7 +30,7 @@ import p4runtime_lib.helper
 import p4runtime_lib.switch as switch
 from p4runtime_lib.switch import ShutdownAllSwitchConnections
 from p4.v1 import p4runtime_pb2
-from scapy.all import Ether, IP, sendp
+from scapy.all import Ether, IP, sendp, raw
 import socket
 
 #debugging
@@ -56,17 +57,61 @@ class NetHdr(Packet):
 
 from p4.v1 import p4runtime_pb2
 
-def send_packet_out(switch_conn, p4info_helper, pkt_bytes, egress_port):
+def build_packet_out(p4info_helper, pkt_bytes, egress_port):
     packet_out = p4runtime_pb2.PacketOut()
     packet_out.payload = pkt_bytes
 
     md = packet_out.metadata.add()
-    md.metadata_id = p4info_helper.get_packet_metadata_id("egress_port")
-    md.value = (egress_port).to_bytes(1, byteorder="big")  # 8 bits -> 1 byte
+    #md.metadata_id = p4info_helper.get_packet_metadata_id("egress_port")
+    md.metadata_id = 1
+    md.value = (egress_port).to_bytes(2, "big")
 
     request = p4runtime_pb2.StreamMessageRequest()
     request.packet.CopyFrom(packet_out)
-    switch_conn.requests_stream.put(request)
+    return request
+
+def init_prebuilt_packets(p4info_helper):
+    prebuilt = {}
+
+    base_eth = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01")
+    base_ip  = IP(src="10.0.0.1", proto=253)
+
+    # Example packets (fill in all your finite NetHdr variations)
+    # packet_specs = [
+    #     # key, ip.dst, NetHdr fields, egress_port
+    #     (("to-2", "request-1B"), "10.0.0.2", dict(disconnected_pmus=0x03, ip_value=0x0A000104, rtype=0), 1),
+    #     (("to-2", "request-1"), "10.0.0.2", dict(disconnected_pmus=0x04, ip_value=0x0A000101, rtype=0), 1),
+    #     (("to-3", "request-1B"), "10.0.0.3", dict(disconnected_pmus=0x03, ip_value=0x0A000104, rtype=0), 2),
+    #     (("to-3", "request-1"), "10.0.0.3", dict(disconnected_pmus=0x04, ip_value=0x0A000101, rtype=0), 2),
+    #     (("to-2", "return-1B"), "10.0.0.2", dict(disconnected_pmus=0x0A, ip_value=0x0A000104, rtype=1), 1),
+    #     (("to-2", "return-1"), "10.0.0.2", dict(disconnected_pmus=0x09, ip_value=0x0A000101, rtype=1), 1),
+    #     (("to-3", "return-1B"), "10.0.0.3", dict(disconnected_pmus=0x0A, ip_value=0x0A000104, rtype=1), 2),
+    #     (("to-3", "return-1"), "10.0.0.3", dict(disconnected_pmus=0x09, ip_value=0x0A000101, rtype=1), 2),
+    # ]
+
+    # for key, dst_ip, nh_fields, egress_port in packet_specs:
+    #     ip_layer = IP(src=base_ip.src, proto=base_ip.proto, dst=dst_ip)
+    #     pkt = base_eth / ip_layer / NetHdr(**nh_fields)
+    #     pkt_bytes = raw(pkt)
+    #     pkt_bytes = raw(pkt)
+    #     if len(pkt_bytes) < 64: #BMv2 minimum size
+    #         pkt_bytes += b'\x00' * (64 - len(pkt_bytes)) 
+    #     prebuilt[key] = build_packet_out(p4info_helper, pkt_bytes, egress_port)
+
+    packet_specs = [
+        (("to-2", "request-1"), "10.0.0.2", 1),
+        (("to-3", "request-1"), "10.0.0.3", 2),
+    ]
+
+    for key, dst_ip, egress_port in packet_specs:
+        ip_layer = IP(src=base_ip.src, proto=base_ip.proto, dst=dst_ip)
+        pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01", type=0x0800) / \
+        IP(src="10.0.0.1", dst="10.0.0.2", proto=253) / \
+        NetHdr(disconnected_pmus=3, ip_value=0x0A000104, rtype=0)
+        pkt_bytes = raw(pkt)
+        prebuilt[key] = build_packet_out(p4info_helper, pkt_bytes, egress_port)
+
+    return prebuilt
 
 PDCs_up = [1,1,1,1]
 processed_ips = set()
@@ -78,8 +123,8 @@ def handle_digests(p4info_helper, switch_conn):
         try:
             digest = switch_conn.dispatcher.digest_queue.get()
             arrival_time = datetime.datetime.now()
-            print("\n----- Digest Received on S1-----")
-            print(digest)
+            #print("\n----- Digest Received on S1-----")
+            #print(digest)
 
             ts_ns = digest.timestamp  # nanoseconds since switch start
             ts_sec = ts_ns / 1e9
@@ -105,6 +150,23 @@ def handle_digests(p4info_helper, switch_conn):
 
 
 def process__digest(s1, digest_t, p4info_helper, arrival_time): #digest_t is incoming digest, digest is after removing it from P4StructLike object
+    #global PREBUILT_PKTS
+    pkt2 = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
+    IP(src="10.0.0.1", dst="10.0.0.3", proto=253) / \
+    NetHdr(disconnected_pmus=0x04, ip_value=0x0A000101, rtype=0)
+
+    pkt1 = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
+    IP(src="10.0.0.1", dst="10.0.0.2", proto=253) / \
+    NetHdr(disconnected_pmus=0x04, ip_value=0x0A000101, rtype=0)
+
+    pkt3 = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
+    IP(src="10.0.0.1", dst="10.0.0.3", proto=253) / \
+    NetHdr(disconnected_pmus=0x03, ip_value=0x0A000104, rtype=0)
+
+    pkt4 = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
+    IP(src="10.0.0.1", dst="10.0.0.2", proto=253) / \
+    NetHdr(disconnected_pmus=0x03, ip_value=0x0A000104, rtype=0)
+
     digest = digest_t.data[0] # P4Data object
     members = digest.struct.members
     disconnected_pmus = int.from_bytes(members[0].bitstring, 'big')
@@ -140,7 +202,6 @@ def process__digest(s1, digest_t, p4info_helper, arrival_time): #digest_t is inc
                 before_install = datetime.datetime.now()
 
                 latency = (before_install - arrival_time).total_seconds() * 1000
-                print("arrival time:", arrival_time)
                 print(f"Installed Rule (latency: {latency:.3f} ms)")
 
             except grpc.RpcError as e:
@@ -157,24 +218,14 @@ def process__digest(s1, digest_t, p4info_helper, arrival_time): #digest_t is inc
             print("Installed Rule from PDC 1 to PDC 1B")
 
         else:
-
-            # Build packet
-            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
-                IP(src="10.0.0.1", dst="10.0.0.2", proto=253) / \
-                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
-        
-
             # Send out on the correct interface (replace 'eth0' with your interface)
-            sendp(pkt, iface="s1-eth1", verbose=True)
-
-            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
-                IP(src="10.0.0.1", dst="10.0.0.3", proto=253) / \
-                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
-
-            sendp(pkt, iface="s1-eth2", verbose=True)
+            sendp(pkt1, iface="s1-eth1", verbose=True)
+    
+            # Send out on the correct interface (replace 'eth0' with your interface)
+            sendp(pkt2, iface="s1-eth2", verbose=True)
 
 
-    if(ip_value ==  0x0A000104):
+    if(ip_value ==  0x0A000104 and rtype == 0):
         disconnected_pmus = 0x03
         ip_value = 0x0A000104 # 10.0.1.4 as int
         rtype = 0
@@ -213,20 +264,10 @@ def process__digest(s1, digest_t, p4info_helper, arrival_time): #digest_t is inc
             print("Installed Rule from PDC 1B to PDC 1")
 
         else:
-            # Build packet
-            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
-                IP(src="10.0.0.1", dst="10.0.0.2", proto=253) / \
-                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
-
             # Send out on the correct interface (replace 'eth0' with your interface)
-            sendp(pkt, iface="s1-eth1", verbose=True)
-
-            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:01") / \
-                IP(src="10.0.0.1", dst="10.0.0.3", proto=253) / \
-                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
-
+            sendp(pkt3, iface="s1-eth1", verbose=True)
             # Send out on the correct interface (replace 'eth0' with your interface)
-            sendp(pkt, iface="s1-eth2", verbose=True)
+            sendp(pkt4, iface="s1-eth2", verbose=True)
 
         processed_ips.add(ip_value)
 
@@ -363,6 +404,14 @@ def process__digest(s1, digest_t, p4info_helper, arrival_time): #digest_t is inc
 def main(p4info_file_path, bmv2_file_path):
     # Instantiate a P4Runtime helper from the p4info file
     p4info_helper = p4runtime_lib.helper.P4InfoHelper(p4info_file_path)
+
+    # for cpm in p4info_helper.p4info.controller_packet_metadata:
+    #     print("Controller packet metadata header:", cpm.preamble.name)
+    #     for md in cpm.metadata:
+    #         print(f"  field: {md.name}, id={md.id}, bitwidth={md.bitwidth}")
+
+    # global PREBUILT_PKTS
+    # PREBUILT_PKTS = init_prebuilt_packets(p4info_helper)
 
     try:
         # Create switch connection object

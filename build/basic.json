@@ -82,8 +82,16 @@
       ]
     },
     {
-      "name" : "arp_t",
+      "name" : "packet_out_header_t",
       "id" : 6,
+      "fields" : [
+        ["egress_port", 9, false],
+        ["i_need_seven_bits", 7, false]
+      ]
+    },
+    {
+      "name" : "arp_t",
+      "id" : 7,
       "fields" : [
         ["htype", 16, false],
         ["ptype", 16, false],
@@ -141,8 +149,15 @@
       "pi_omit" : true
     },
     {
-      "name" : "arp",
+      "name" : "packet_out",
       "id" : 6,
+      "header_type" : "packet_out_header_t",
+      "metadata" : false,
+      "pi_omit" : true
+    },
+    {
+      "name" : "arp",
+      "id" : 7,
       "header_type" : "arp_t",
       "metadata" : false,
       "pi_omit" : true
@@ -303,7 +318,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 256,
+        "line" : 259,
         "column" : 8,
         "source_fragment" : "MyDeparser"
       },
@@ -320,7 +335,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 234,
+        "line" : 237,
         "column" : 12,
         "source_fragment" : "update_checksum( ..."
       },
@@ -421,7 +436,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 147,
+            "line" : 149,
             "column" : 8,
             "source_fragment" : "mark_to_drop(standard_metadata)"
           }
@@ -456,7 +471,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 151,
+            "line" : 153,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = port"
           }
@@ -475,7 +490,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 152,
+            "line" : 154,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.srcAddr = hdr.ethernet.dstAddr"
           }
@@ -494,7 +509,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 153,
+            "line" : 155,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.dstAddr = dstAddr"
           }
@@ -536,7 +551,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 154,
+            "line" : 156,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.ttl = hdr.ipv4.ttl - 1"
           }
@@ -575,7 +590,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 158,
+            "line" : 160,
             "column" : 8,
             "source_fragment" : "standard_metadata.egress_spec = port"
           }
@@ -594,7 +609,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 159,
+            "line" : 161,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.srcAddr = hdr.ethernet.dstAddr"
           }
@@ -613,7 +628,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 160,
+            "line" : 162,
             "column" : 8,
             "source_fragment" : "hdr.ethernet.dstAddr = dstAddr"
           }
@@ -655,7 +670,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 161,
+            "line" : 163,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.ttl = hdr.ipv4.ttl - 1"
           }
@@ -674,7 +689,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 162,
+            "line" : 164,
             "column" : 8,
             "source_fragment" : "hdr.ipv4.dstAddr = new_dst_ip"
           }
@@ -690,7 +705,7 @@
           "op" : "_jump_if_zero",
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 177,
+            "line" : 179,
             "column" : 8,
             "source_fragment" : "if"
           },
@@ -756,7 +771,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 178,
+            "line" : 180,
             "column" : 37,
             "source_fragment" : "hdr.net_hdr.disconnected_pmus"
           }
@@ -775,7 +790,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 178,
+            "line" : 180,
             "column" : 68,
             "source_fragment" : "hdr.net_hdr.ip_value"
           }
@@ -794,7 +809,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 178,
+            "line" : 180,
             "column" : 90,
             "source_fragment" : "hdr.net_hdr.rtype"
           }
@@ -813,7 +828,7 @@
           ],
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 178,
+            "line" : 180,
             "column" : 12,
             "source_fragment" : "digest<net_report_t>(1, {hdr.net_hdr.disconnected_pmus, hdr.net_hdr.ip_value, hdr.net_hdr.rtype})"
           }
@@ -827,7 +842,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 142,
+        "line" : 144,
         "column" : 8,
         "source_fragment" : "MyIngress"
       },
@@ -838,7 +853,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 182,
+            "line" : 184,
             "column" : 10,
             "source_fragment" : "check_switch_source_ip"
           },
@@ -875,7 +890,7 @@
           "id" : 1,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 195,
+            "line" : 197,
             "column" : 10,
             "source_fragment" : "ipv4_lpm"
           },
@@ -917,7 +932,7 @@
           "id" : 0,
           "source_info" : {
             "filename" : "basic.p4",
-            "line" : 210,
+            "line" : 212,
             "column" : 12,
             "source_fragment" : "hdr.ipv4.isValid()"
           },
@@ -942,7 +957,7 @@
       "id" : 1,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 221,
+        "line" : 223,
         "column" : 8,
         "source_fragment" : "MyEgress"
       },
@@ -958,7 +973,7 @@
       "id" : 0,
       "source_info" : {
         "filename" : "basic.p4",
-        "line" : 234,
+        "line" : 237,
         "column" : 12,
         "source_fragment" : "update_checksum( ..."
       },

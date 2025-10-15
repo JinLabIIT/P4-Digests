@@ -227,9 +227,23 @@ def process__digest(s3, digest_t, p4info_helper): #digest_t is incoming digest, 
 
         print("Installed Rule from PDC3 to PDC1B")
 
-    if(ip_value == 0x0A000102):
+    if(ip_value == 0x0A000101 and rtype == 0):
         disconnected_pmus = 0x06
-        ip_value = 0x0A000102  
+        ip_value = 0x0A000103  
+        rtype = 1
+        PDCs_up[0] = 0
+
+        if(PDCs_up[2] == 1):
+            ip_value = 0x0A000103
+            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:03") / \
+                IP(src="10.0.0.3", dst="10.0.0.1", proto=253) / \
+                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+        
+            sendp(pkt, iface="s3-eth1", verbose=True)
+
+    if(ip_value == 0x0A000102 and rtype == 0):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000103  
         rtype = 1
         PDCs_up[1] = 0
 
@@ -239,7 +253,21 @@ def process__digest(s3, digest_t, p4info_helper): #digest_t is incoming digest, 
                 IP(src="10.0.0.3", dst="10.0.0.2", proto=253) / \
                 NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
         
-            sendp(pkt, iface="s1-eth2", verbose=True)
+            sendp(pkt, iface="s3-eth2", verbose=True)
+
+    if(ip_value == 0x0A000104 and rtype == 0):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000103  
+        rtype = 1
+        PDCs_up[0] = 0
+
+        if(PDCs_up[2] == 1):
+            ip_value = 0x0A000103
+            pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:03") / \
+                IP(src="10.0.0.3", dst="10.0.0.4", proto=253) / \
+                NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+        
+            sendp(pkt, iface="s3-eth1", verbose=True)
 
     processed_ips.add(orig_ip)
 

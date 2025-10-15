@@ -63,7 +63,8 @@ header net_header_t {
 
 @controller_header("packet_out")
 header packet_out_header_t {
-    bit<8> egress_port;
+    bit<9> egress_port;
+    bit<7> i_need_seven_bits;
 }
 
 struct headers {
@@ -71,6 +72,7 @@ struct headers {
     ipv4_t ipv4;
     udp_t udp;
     net_header_t net_hdr;
+    packet_out_header_t packet_out;
     arp_t arp;
 }
 
@@ -221,7 +223,8 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    apply { }
+    apply {
+    }
 }
 
 

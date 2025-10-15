@@ -144,6 +144,22 @@ def process__digest(s2, digest_t, p4info_helper): #digest_t is incoming digest, 
         sendp(pkt, iface="s2-eth2", verbose=True)
 
 
+    if(ip_value == 0x0A000101 and rtype == 0):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000102  # 10.0.1.2 as int
+        rtype = 1
+        PDCs_up[0] = 0
+
+        # Build packet
+        pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:02") / \
+            IP(src="10.0.0.2", dst="10.0.0.1", proto=253) / \
+            NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+    
+
+        # Send out on the correct interface (replace 'eth0' with your interface)
+        sendp(pkt, iface="s2-eth1", verbose=True)
+
+
     
     if(ip_value == 0x0A000101 and rtype == 1):
         try:
@@ -225,6 +241,22 @@ def process__digest(s2, digest_t, p4info_helper): #digest_t is incoming digest, 
                     break
 
         print("Installed Rule from PDC2 to PDC1B")
+
+    if(ip_value == 0x0A000104 and rtype == 0):
+        disconnected_pmus = 0x06
+        ip_value = 0x0A000102  # 10.0.1.2 as int
+        rtype = 1
+        PDCs_up[0] = 0
+
+        # Build packet
+        pkt = Ether(dst="ff:ff:ff:ff:ff:ff", src="00:00:00:00:01:02") / \
+            IP(src="10.0.0.2", dst="10.0.0.4", proto=253) / \
+            NetHdr(disconnected_pmus=disconnected_pmus, ip_value=ip_value, rtype=rtype)
+    
+
+        # Send out on the correct interface (replace 'eth0' with your interface)
+        sendp(pkt, iface="s2-eth1", verbose=True)
+
     
     if(ip_value == 0x0A000103):
         disconnected_pmus = 0x06

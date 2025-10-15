@@ -128,7 +128,12 @@ controller_packet_metadata {
   metadata {
     id: 1
     name: "egress_port"
-    bitwidth: 8
+    bitwidth: 9
+  }
+  metadata {
+    id: 2
+    name: "i_need_seven_bits"
+    bitwidth: 7
   }
 }
 digests {

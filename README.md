@@ -1,4 +1,4 @@
-#Install Instructions
+# Install Instructions
 This project is currently in progess and will require substantial work for the user to run.
 
 To run this project, first create a Ubunutu 24.04 virtual machine or install WSL. There are instructions for installing a virtual machine at `https://github.com/p4lang/tutorials/blob/master/vm-ubuntu-24.04/README-create-vm-using-iso-installer.md.`

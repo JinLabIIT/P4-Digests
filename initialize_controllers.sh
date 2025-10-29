@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#For this script to work, you need to run chmod +x ./s1_controller.py, chmod +x ./s2_controller.py, and chmod +x ./s3_controller.py.
+
 # Paths to the controller scripts
 S1_CONTROLLER="controllers/./s1_controller.py"
 S2_CONTROLLER="controllers/./s2_controller.py"

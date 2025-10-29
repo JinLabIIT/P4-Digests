@@ -65,7 +65,6 @@ struct headers {
     ethernet_t ethernet;
     ipv4_t ipv4;
     udp_t udp;
-    net_header_t net_hdr;
     packet_out_header_t packet_out;
     arp_t arp;
 }

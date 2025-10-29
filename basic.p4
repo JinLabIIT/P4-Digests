@@ -234,7 +234,6 @@ control MyDeparser(packet_out packet,
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.net_hdr); 
         packet.emit(hdr.arp);  
     }
 } 

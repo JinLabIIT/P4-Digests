@@ -55,12 +55,6 @@ header udp_t {
     bit<16> checksum;
 }
 
-header net_header_t {
-    bit<7> disconnected_pmus;
-    bit<32> ip_value;
-    bit<1> rtype; //return or request
-}
-
 @controller_header("packet_out")
 header packet_out_header_t {
     bit<9> egress_port;
@@ -76,14 +70,13 @@ struct headers {
     arp_t arp;
 }
 
-struct net_report_t {
-    bit<7> disconnected_pmus;
-    bit<32> ip_value;
-    bit<1> rtype;
+struct digest_report_t {
+    bit<32> srcIP;
+    bit<32> dstIP;
 }
 
 struct metadata {
-    net_report_t net_report;
+    digest_report_t digest_report;
 }
 
 
@@ -112,14 +105,8 @@ parser MyParser(packet_in packet,
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
-            253: parse_net_hdr;
             default: accept;
         }
-    }
-
-    state parse_net_hdr {
-        packet.extract(hdr.net_hdr);
-        transition accept;
     }
 
     state parse_arp {
@@ -156,8 +143,8 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
-    action ipv4_nat_forward(macAddr_t dstAddr, egressSpec_t port, ip4Addr_t new_dst_ip) { //what i'm doing isn't nat, but they're very similar
-        standard_metadata.egress_spec = port;                                             // and it may be easiest to think of it that way
+    action ipv4_nat_forward(macAddr_t dstAddr, egressSpec_t port, ip4Addr_t new_dst_ip) {
+        standard_metadata.egress_spec = port;                                             
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
@@ -175,23 +162,10 @@ control MyIngress(inout headers hdr,
         standard_metadata.egress_spec = standard_metadata.ingress_port;
     }
 
-    action mark_as_switch_traffic() {
-        if (hdr.net_hdr.isValid()  && standard_metadata.ingress_port != CPU_PORT) {
-            digest<net_report_t>(1, {hdr.net_hdr.disconnected_pmus, hdr.net_hdr.ip_value, hdr.net_hdr.rtype});
+    action send_digest() {
+        if (hdr.ipv4.isValid()) { //This line is used to set the condition to trigger the digest message.
+            digest<digest_report_t>(1, {hdr.ipv4.srcAddr, hdr.ipv4.dstAddr}); //This line sends the digest. digest<report_type>(1, {report_field_1, report_field_2, ...}); 
         } 
-    }
-
-    table check_switch_source_ip {
-        key = {
-            hdr.ipv4.dstAddr: lpm;
-        }
-        actions = {
-            mark_as_switch_traffic;
-            NoAction;
-        }
-        size = 256;
-        support_timeout = true;
-        default_action = mark_as_switch_traffic;
     }
 
     table ipv4_lpm {
@@ -201,6 +175,7 @@ control MyIngress(inout headers hdr,
         actions = {
             ipv4_forward;
             ipv4_nat_forward;
+            send_digest;
             drop;
             NoAction;
         }
@@ -210,7 +185,6 @@ control MyIngress(inout headers hdr,
 
     apply {
         if (hdr.ipv4.isValid()) {
-            check_switch_source_ip.apply();
             ipv4_lpm.apply();
         }
     }

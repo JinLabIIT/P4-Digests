@@ -187,7 +187,7 @@
     },
     "switches": {
         "s1": {"program": "build/basic.json"},
-        "s2": {"program": "build/central.json"},
+        "s2": {"program": "build/basic.json"},
         "s3": {"program": "build/basic.json"}
     },
     "links": [
